@@ -2,6 +2,8 @@ open Base
 open Vec3
 
 module Color = struct
+  include Vec3
+
   type t = Vec3.t [@@deriving sexp]
 
   let to_string (color : t) =
