@@ -1,6 +1,8 @@
 (executable
  (public_name camltracer)
  (name main)
+ (flags
+  (-w -32))
  (libraries camltracer base stdio)
  (preprocess
   (pps ppx_jane)))

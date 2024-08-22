@@ -1,4 +1,5 @@
 open Base
+open Stdio
 open Point3
 open Vec3
 open Color
@@ -12,24 +13,30 @@ module Ray = struct
 
   let position ray time : Point3.t = Point3.(ray.origin + scale ray.direction time)
 
-  let hit_sphere (center : Point3.t) (radius : Float.t) (ray : t) : Bool.t =
+  let hit_sphere (center : Point3.t) (radius : Float.t) (ray : t) : Float.t =
     let oc = Point3.(center - ray.origin) in
     let a = Vec3.dot ray.direction ray.direction in
     let b = 2. *. Vec3.dot oc ray.direction in
-    let c = Point3.dot oc oc -. (radius *. radius) in
-    let discriminant = (b *. b) -. (4. *. a *. c) in
-    Float.(discriminant >= 0.)
+    let c = Point3.dot oc oc -. Float.square radius in
+    let discriminant = Float.(square b - (4. * a * c)) in
+    if Float.(discriminant < 0.)
+    then 0.
+    else Float.(neg b - (sqrt discriminant / (2.0 * a)))
   ;;
 
   let ray_color ray : Color.t =
     let center = Vec3.{ r = 0.; g = 0.; b = -1. } in
     let radius = 0.5 in
-    if hit_sphere center radius ray
-    then Vec3.{ r = 1.; g = 0.; b = 0. }
+    let t = hit_sphere center radius ray in
+    if Float.(t < 0.)
+    then (
+      let n = Vec3.( - ) (position ray t) center in
+      let unit_n = Vec3.unit_vector n in
+      Color.scale { r = unit_n.r +. 1.; g = unit_n.g +. 1.; b = unit_n.b +. 1. } 0.5)
     else (
       let unit_direction = Point3.unit_vector ray.direction in
       let a = 0.5 *. (unit_direction.g +. 1.) in
-      Vec3.(
+      Color.(
         scale { r = 1.; g = 1.; b = 1. } (1. -. a) + scale { r = 0.5; g = 0.7; b = 1. } a))
   ;;
 end
