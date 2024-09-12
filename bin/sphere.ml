@@ -1,8 +1,9 @@
 open Base
 open Hitrecord
+open Interval
 open Point3
-open Vec3
 open Ray
+open Vec3
 
 module Sphere = struct
   type t =
@@ -11,7 +12,7 @@ module Sphere = struct
     }
   [@@deriving sexp]
 
-  let hit sphere (ray : Ray.t) ray_tmin ray_tmax (hit_record : HitRecord.t) =
+  let hit sphere (ray : Ray.t) (time_interval : Interval.t) (hit_record : HitRecord.t) =
     let oc = Point3.(sphere.center - ray.origin) in
     (* let a = ray.direction |> Vec3.length |> Float.square in *)
     let a = Vec3.dot ray.direction ray.direction in
@@ -25,13 +26,11 @@ module Sphere = struct
       let sqrt_discriminant = Float.sqrt discriminant in
       let root1 = Float.((h - sqrt_discriminant) / a) in
       let root2 = Float.((h + sqrt_discriminant) / a) in
-      if Float.(root1 <= ray_tmin || ray_tmax <= root1)
-         && Float.(root2 <= ray_tmin || ray_tmax <= root2)
+      if (not (Interval.surrounds time_interval root1))
+         && not (Interval.surrounds time_interval root2)
       then false
       else (
-        let root =
-          if not Float.(root1 <= ray_tmin || ray_tmax <= root1) then root1 else root2
-        in
+        let root = if Interval.surrounds time_interval root1 then root1 else root2 in
         hit_record.time <- root;
         hit_record.point <- Ray.position ray hit_record.time;
         hit_record.normal

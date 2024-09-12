@@ -8,6 +8,7 @@ open Sphere
 open Hitrecord
 open Hittable
 open Hittablelist
+open Interval
 
 let ray_color (ray : Ray.t) (world : HittableList.t) : Color.t =
   let hit_record =
@@ -18,7 +19,8 @@ let ray_color (ray : Ray.t) (world : HittableList.t) : Color.t =
       ; front_face = false
       }
   in
-  if HittableList.hit world ray 0. Float.infinity hit_record
+  let time_interval = Interval.{ min = 0.; max = Float.infinity } in
+  if HittableList.hit world ray time_interval hit_record
   then (
     let HitRecord.{ normal = { r = nr; g = ng; b = nb }; _ } = hit_record in
     Color.scale Color.{ r = 1. +. nr; g = 1. +. ng; b = 1. +. nb } 0.5)
