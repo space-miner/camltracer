@@ -20,12 +20,7 @@ module HittableList = struct
 
   let add hittable_list obj = hittable_list := List.append !hittable_list [ obj ]
 
-  let hit
-    (hittable_list : t)
-    (ray : Ray.t)
-    (time_interval : Interval.t)
-    (hit_record : HitRecord.t)
-    =
+  let hit hittable_list ray ({ min; max } : Interval.t) (hit_record : HitRecord.t) =
     let temp_record =
       HitRecord.
         { point = Point3.{ r = 0.; g = 0.; b = 0. }
@@ -35,10 +30,10 @@ module HittableList = struct
         }
     in
     let hit_anything = ref false in
-    let closest_so_far = ref time_interval.max in
+    let closest_so_far = ref max in
     List.iter
       ~f:(fun obj ->
-        let time_interval = Interval.{ min = time_interval.min; max = !closest_so_far } in
+        let time_interval = Interval.{ min; max = !closest_so_far } in
         if Hittable.hit obj ray time_interval temp_record
         then (
           hit_anything := true;
