@@ -16,19 +16,21 @@ module Ray = struct
   let hit_sphere (center : Point3.t) (radius : Float.t) (ray : t) : Float.t =
     let oc = Point3.(center - ray.origin) in
     let a = Vec3.dot ray.direction ray.direction in
-    let b = 2. *. Vec3.dot oc ray.direction in
+    (* let b = 2. *. Vec3.dot oc ray.direction in *)
+    let h = Vec3.dot ray.direction oc in
     let c = Point3.dot oc oc -. Float.square radius in
-    let discriminant = Float.(square b - (4. * a * c)) in
+    (* let discriminant = Float.(square b - (4. * a * c)) in *)
+    let discriminant = Float.(square h - (a * c)) in
     if Float.(discriminant < 0.)
-    then 0.
-    else Float.(neg b - (sqrt discriminant / (2.0 * a)))
+    then Float.neg 1. (* else Float.(neg b - (sqrt discriminant / (2.0 * a))) *)
+    else Float.((h - sqrt discriminant) / a)
   ;;
 
   let ray_color ray : Color.t =
     let center = Vec3.{ r = 0.; g = 0.; b = -1. } in
     let radius = 0.5 in
     let t = hit_sphere center radius ray in
-    if Float.(t < 0.)
+    if Float.(t > 0.)
     then (
       let n = Vec3.( - ) (position ray t) center in
       let unit_n = Vec3.unit_vector n in

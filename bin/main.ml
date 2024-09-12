@@ -4,6 +4,30 @@ open Color
 open Point3
 open Vec3
 open Ray
+open Sphere
+open Hitrecord
+open Hittable
+open Hittablelist
+
+let ray_color (ray : Ray.t) (world : HittableList.t) : Color.t =
+  let hit_record =
+    HitRecord.
+      { point = Point3.{ r = 0.; g = 0.; b = 0. }
+      ; normal = Vec3.{ r = 0.; g = 0.; b = 0. }
+      ; time = 0.
+      ; front_face = false
+      }
+  in
+  if HittableList.hit world ray 0. Float.infinity hit_record
+  then (
+    let HitRecord.{ normal = { r = nr; g = ng; b = nb }; _ } = hit_record in
+    Color.scale Color.{ r = 1. +. nr; g = 1. +. ng; b = 1. +. nb } 0.5)
+  else (
+    let unit_direction = Point3.unit_vector ray.direction in
+    let a = 0.5 *. (unit_direction.g +. 1.) in
+    Color.(
+      scale { r = 1.; g = 1.; b = 1. } (1. -. a) + scale { r = 0.5; g = 0.7; b = 1. } a))
+;;
 
 let () =
   (* image *)
@@ -12,6 +36,14 @@ let () =
   let image_height =
     Int.max 1 (Int.of_float (image_width /. aspect_ratio)) |> Float.of_int
   in
+  (* world *)
+  let world = ref [] in
+  HittableList.add
+    world
+    (Hittable.Sphere Sphere.{ center = Point3.{ r = 0.; g = 0.; b = -1. }; radius = 0.5 });
+  HittableList.add
+    world
+    (Hittable.Sphere { center = Point3.{ r = 0.; g = -100.5; b = -1. }; radius = 100. });
   (* camera *)
   let focal_length = 1. in
   let viewport_height = 2. in
@@ -51,7 +83,8 @@ let () =
       in
       let ray_direction = Point3.(pixel_center - camera_center) in
       let ray = Ray.{ origin = camera_center; direction = ray_direction } in
-      let pixel_color = Ray.ray_color ray in
+      (* let pixel_color = ray_color ray world in *)
+      let pixel_color = ray_color ray world in
       print_endline (Color.to_string pixel_color)
     done
   done
