@@ -14,7 +14,7 @@ module Ray = struct
   let position ray time : Point3.t = Point3.(ray.origin + scale ray.direction time)
 
   let hit_sphere (center : Point3.t) (radius : Float.t) (ray : t) : Float.t =
-    let oc = Point3.(center - ray.origin) in
+    let oc = Point3.( - ) center ray.origin in
     let a = Vec3.dot ray.direction ray.direction in
     (* let b = 2. *. Vec3.dot oc ray.direction in *)
     let h = Vec3.dot ray.direction oc in

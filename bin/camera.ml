@@ -61,7 +61,7 @@ module Camera = struct
     }
   ;;
 
-  let ray_color (ray : Ray.t) (world : HittableList.t) : Color.t =
+  let rec ray_color (ray : Ray.t) (world : HittableList.t) : Color.t =
     let hit_record =
       HitRecord.
         { point = Point3.{ r = 0.; g = 0.; b = 0. }
@@ -73,8 +73,11 @@ module Camera = struct
     let time_interval = Interval.{ min = 0.; max = Float.infinity } in
     if HittableList.hit world ray time_interval hit_record
     then (
-      let HitRecord.{ normal = { r = nr; g = ng; b = nb }; _ } = hit_record in
-      Color.scale Color.{ r = 1. +. nr; g = 1. +. ng; b = 1. +. nb } 0.5)
+      let direction = Vec3.random_on_hemisphere hit_record.normal in
+      let ray = Ray.{ origin = hit_record.point; direction } in
+      Color.scale (ray_color ray world) 0.5
+      (* let HitRecord.{ normal = { r = nr; g = ng; b = nb }; _ } = hit_record in *)
+      (* Color.scale Color.{ r = 1. +. nr; g = 1. +. ng; b = 1. +. nb } 0.5) *))
     else (
       let unit_direction = Point3.unit_vector ray.direction in
       let a = 0.5 *. (unit_direction.g +. 1.) in

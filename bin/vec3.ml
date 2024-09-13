@@ -8,21 +8,14 @@ module Vec3 = struct
     }
   [@@deriving sexp]
 
-  let neg t = Float.{ r = neg t.r; g = neg t.g; b = neg t.b }
+  let neg { r; g; b } = Float.{ r = neg r; g = neg g; b = neg b }
   let ( - ) t1 t2 = { r = t1.r -. t2.r; g = t1.g -. t2.g; b = t1.b -. t2.b }
   let ( + ) t1 t2 = { r = t1.r +. t2.r; g = t1.g +. t2.g; b = t1.b +. t2.b }
   let ( * ) t1 t2 = { r = t1.r *. t2.r; g = t1.g *. t2.g; b = t1.b *. t2.b }
   let ( / ) t1 t2 = { r = t1.r /. t2.r; g = t1.g /. t2.g; b = t1.b /. t2.b }
-  let scale t factor = { r = t.r *. factor; g = t.g *. factor; b = t.b *. factor }
-
-  let length t =
-    [ t.r; t.g; t.b ]
-    |> List.map ~f:Float.square
-    |> List.fold ~init:0. ~f:( +. )
-    |> Float.sqrt
-  ;;
-
-  let sum_rgb t = List.fold [ t.r; t.g; t.b ] ~init:0. ~f:( +. )
+  let scale { r; g; b } factor = { r = r *. factor; g = g *. factor; b = b *. factor }
+  let length { r; g; b } = Float.(sqrt (square r + square g + square b))
+  let sum_rgb { r; g; b } = Float.(r + g + b)
   let dot t1 t2 = sum_rgb (t1 * t2)
 
   let cross t1 t2 =
@@ -33,4 +26,22 @@ module Vec3 = struct
   ;;
 
   let unit_vector t = scale t (1. /. length t)
+
+  let rec random_unit_vector () =
+    let epsilon = 1e-160 in
+    let rand_vec =
+      { r = Random.float_range (-1.) 1.
+      ; g = Random.float_range (-1.) 1.
+      ; b = Random.float_range (-1.) 1.
+      }
+    in
+    if Float.(dot rand_vec rand_vec < epsilon)
+    then random_unit_vector ()
+    else unit_vector rand_vec
+  ;;
+
+  let random_on_hemisphere normal =
+    let vec = random_unit_vector () in
+    if Float.(dot vec normal > 0.) then vec else neg vec
+  ;;
 end
