@@ -19,10 +19,11 @@ module Camera = struct
     ; pixel00_loc : Point3.t
     ; pixel_delta_u : Vec3.t
     ; pixel_delta_v : Vec3.t
+    ; depth : Int.t
     }
   [@@deriving sexp]
 
-  let make aspect_ratio image_width samples_per_pixel =
+  let make aspect_ratio image_width samples_per_pixel depth =
     let image_height =
       Int.max 1 (Int.of_float (image_width /. aspect_ratio)) |> Float.of_int
     in
@@ -58,31 +59,34 @@ module Camera = struct
     ; pixel00_loc
     ; pixel_delta_u
     ; pixel_delta_v
+    ; depth
     }
   ;;
 
-  let rec ray_color (ray : Ray.t) (world : HittableList.t) : Color.t =
-    let hit_record =
-      HitRecord.
-        { point = Point3.{ r = 0.; g = 0.; b = 0. }
-        ; normal = Vec3.{ r = 0.; g = 0.; b = 0. }
-        ; time = 0.
-        ; front_face = false
-        }
-    in
-    let time_interval = Interval.{ min = 0.; max = Float.infinity } in
-    if HittableList.hit world ray time_interval hit_record
-    then (
-      let direction = Vec3.random_on_hemisphere hit_record.normal in
-      let ray = Ray.{ origin = hit_record.point; direction } in
-      Color.scale (ray_color ray world) 0.5
-      (* let HitRecord.{ normal = { r = nr; g = ng; b = nb }; _ } = hit_record in *)
-      (* Color.scale Color.{ r = 1. +. nr; g = 1. +. ng; b = 1. +. nb } 0.5) *))
+  let rec ray_color (ray : Ray.t) depth (world : HittableList.t) : Color.t =
+    if depth <= 0
+    then Color.{ r = 0.; g = 0.; b = 0. }
     else (
-      let unit_direction = Point3.unit_vector ray.direction in
-      let a = 0.5 *. (unit_direction.g +. 1.) in
-      Color.(
-        scale { r = 1.; g = 1.; b = 1. } (1. -. a) + scale { r = 0.5; g = 0.7; b = 1. } a))
+      let hit_record =
+        HitRecord.
+          { point = Point3.{ r = 0.; g = 0.; b = 0. }
+          ; normal = Vec3.{ r = 0.; g = 0.; b = 0. }
+          ; time = 0.
+          ; front_face = false
+          }
+      in
+      let time_interval = Interval.{ min = 0.001; max = Float.infinity } in
+      if HittableList.hit world ray time_interval hit_record
+      then (
+        let direction = Vec3.random_on_hemisphere hit_record.normal in
+        let ray = Ray.{ origin = hit_record.point; direction } in
+        Color.scale (ray_color ray (depth - 1) world) 0.5
+      else (
+        let unit_direction = Point3.unit_vector ray.direction in
+        let a = 0.5 *. (unit_direction.g +. 1.) in
+        Color.(
+          scale { r = 1.; g = 1.; b = 1. } (1. -. a)
+          + scale { r = 0.5; g = 0.7; b = 1. } a)))
   ;;
 
   let get_ray camera i j =
@@ -114,7 +118,7 @@ module Camera = struct
             ~init:Vec3.{ r = 0.; g = 0.; b = 0. }
             ~f:(fun acc _ ->
               let ray = get_ray camera i j in
-              Color.(acc + ray_color ray world))
+              Color.(acc + ray_color ray camera.depth world))
         in
         print_endline Color.(to_string (scale acc_pixel_color camera.pixel_samples_scale))
       done

@@ -16,8 +16,9 @@ let () =
   let aspect_ratio = 16. /. 9. in
   let image_width = 400. in
   let samples_per_pixel = 10 in
+  let max_depth = 50 in
   (* camera *)
-  let camera = Camera.make aspect_ratio image_width samples_per_pixel in
+  let camera = Camera.make aspect_ratio image_width samples_per_pixel max_depth in
   (* world *)
   let world = ref [] in
   HittableList.add
