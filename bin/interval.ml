@@ -14,4 +14,5 @@ module Interval = struct
   let size { min; max } = max - min
   let contains { min; max } x = min <= x && x <= max
   let surrounds { min; max } x = min < x && x < max
+  let clamp { min; max } x = if x < min then min else if x > max then max else x
 end

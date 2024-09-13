@@ -2,9 +2,9 @@ open Base
 
 module Vec3 = struct
   type t =
-    { r : float
-    ; g : float
-    ; b : float
+    { r : Float.t
+    ; g : Float.t
+    ; b : Float.t
     }
   [@@deriving sexp]
 

@@ -13,6 +13,8 @@ module Camera = struct
     { aspect_ratio : Float.t
     ; image_width : Float.t
     ; image_height : Float.t
+    ; samples_per_pixel : Int.t
+    ; pixel_samples_scale : Float.t
     ; center : Point3.t
     ; pixel00_loc : Point3.t
     ; pixel_delta_u : Vec3.t
@@ -20,10 +22,11 @@ module Camera = struct
     }
   [@@deriving sexp]
 
-  let make aspect_ratio image_width =
+  let make aspect_ratio image_width samples_per_pixel =
     let image_height =
       Int.max 1 (Int.of_float (image_width /. aspect_ratio)) |> Float.of_int
     in
+    let pixel_samples_scale = 1. /. Float.of_int samples_per_pixel in
     (* camera *)
     let focal_length = 1. in
     let viewport_height = 2. in
@@ -49,6 +52,8 @@ module Camera = struct
     { aspect_ratio
     ; image_width
     ; image_height
+    ; samples_per_pixel
+    ; pixel_samples_scale
     ; center = camera_center
     ; pixel00_loc
     ; pixel_delta_u
@@ -77,6 +82,20 @@ module Camera = struct
         scale { r = 1.; g = 1.; b = 1. } (1. -. a) + scale { r = 0.5; g = 0.7; b = 1. } a))
   ;;
 
+  let get_ray camera i j =
+    let r_offset = Random.float_range (-0.5) 0.5 in
+    let g_offset = Random.float_range (-0.5) 0.5 in
+    let pixel_sample =
+      Point3.(
+        camera.pixel00_loc
+        + scale camera.pixel_delta_u (Float.of_int i +. r_offset)
+        + scale camera.pixel_delta_v (Float.of_int j +. g_offset))
+    in
+    let origin = camera.center in
+    let direction = Point3.(pixel_sample - origin) in
+    Ray.{ origin; direction }
+  ;;
+
   let render camera world =
     let _image_header =
       Out_channel.printf
@@ -86,17 +105,33 @@ module Camera = struct
     in
     for j = 0 to Int.of_float camera.image_height - 1 do
       for i = 0 to Int.of_float camera.image_width - 1 do
-        let pixel_center =
-          Point3.(
-            camera.pixel00_loc
-            + scale camera.pixel_delta_u (Float.of_int i)
-            + scale camera.pixel_delta_v (Float.of_int j))
+        let acc_pixel_color =
+          List.fold
+            (List.init camera.samples_per_pixel ~f:Fn.id)
+            ~init:Vec3.{ r = 0.; g = 0.; b = 0. }
+            ~f:(fun acc _ ->
+              let ray = get_ray camera i j in
+              Color.(acc + ray_color ray world))
         in
-        let ray_direction = Point3.(pixel_center - camera.center) in
-        let ray = Ray.{ origin = camera.center; direction = ray_direction } in
+        print_endline Color.(to_string (scale acc_pixel_color camera.pixel_samples_scale))
+        (* let pixel_color = Vec3.{ r = 0.; g = 0.; b = 0. } in *)
+        (* for sample = 1 to camera.samples_per_pixel do *)
+        (*   let ray = get_ray camera i j in *)
+        (*   let pixel_color = Color.(pixel_color + ray_color ray world) in *)
+        (*   if Int.equal sample camera.samples_per_pixel *)
+        (*   then *)
+        (*     print_endline Color.(to_string (scale pixel_color camera.pixel_samples_scale)) *)
+        (* done *)
+        (* let pixel_center = *)
+        (*   Point3.( *)
+        (*     camera.pixel00_loc *)
+        (*     + scale camera.pixel_delta_u (Float.of_int i) *)
+        (*     + scale camera.pixel_delta_v (Float.of_int j)) *)
+        (* in *)
+        (* let ray_direction = Point3.(pixel_center - camera.center) in *)
+        (* let ray = Ray.{ origin = camera.center; direction = ray_direction } in *)
         (* let pixel_color = ray_color ray world in *)
-        let pixel_color = ray_color ray world in
-        print_endline (Color.to_string pixel_color)
+        (* print_endline (Color.to_string pixel_color) *)
       done
     done
   ;;
