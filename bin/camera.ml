@@ -114,24 +114,6 @@ module Camera = struct
               Color.(acc + ray_color ray world))
         in
         print_endline Color.(to_string (scale acc_pixel_color camera.pixel_samples_scale))
-        (* let pixel_color = Vec3.{ r = 0.; g = 0.; b = 0. } in *)
-        (* for sample = 1 to camera.samples_per_pixel do *)
-        (*   let ray = get_ray camera i j in *)
-        (*   let pixel_color = Color.(pixel_color + ray_color ray world) in *)
-        (*   if Int.equal sample camera.samples_per_pixel *)
-        (*   then *)
-        (*     print_endline Color.(to_string (scale pixel_color camera.pixel_samples_scale)) *)
-        (* done *)
-        (* let pixel_center = *)
-        (*   Point3.( *)
-        (*     camera.pixel00_loc *)
-        (*     + scale camera.pixel_delta_u (Float.of_int i) *)
-        (*     + scale camera.pixel_delta_v (Float.of_int j)) *)
-        (* in *)
-        (* let ray_direction = Point3.(pixel_center - camera.center) in *)
-        (* let ray = Ray.{ origin = camera.center; direction = ray_direction } in *)
-        (* let pixel_color = ray_color ray world in *)
-        (* print_endline (Color.to_string pixel_color) *)
       done
     done
   ;;
