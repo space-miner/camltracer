@@ -2,13 +2,17 @@ open Base
 open Ray
 open Vec3
 open Point3
+open Material
 
 module HitRecord = struct
+  type a
+
   type t =
     { mutable point : Point3.t
     ; mutable normal : Vec3.t
     ; mutable time : Float.t
     ; mutable front_face : Bool.t
+    ; mutable material : Material.t
     }
   [@@deriving sexp]
 

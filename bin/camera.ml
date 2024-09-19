@@ -7,6 +7,52 @@ open Ray
 open Hitrecord
 open Hittablelist
 open Interval
+open Material
+open Metal
+open Lambertian
+
+let metal_scatter
+  (t : Metal.t)
+  (ray_in : Ray.t)
+  (hit_record : HitRecord.t)
+  (attenuation : Color.t ref)
+  (ray_scattered : Ray.t ref)
+  =
+  let ray_reflected = Vec3.reflect ray_in.direction hit_record.normal in
+  (ray_scattered := Ray.{ origin = hit_record.point; direction = ray_reflected });
+  attenuation := t.albedo;
+  true
+;;
+
+let lambertian_scatter
+  (t : Lambertian.t)
+  (ray_in : Ray.t)
+  (hit_record : HitRecord.t)
+  (attenuation : Color.t ref)
+  (ray_scattered : Ray.t ref)
+  =
+  let scatter_direction = Vec3.(hit_record.normal + random_unit_vector ()) in
+  let _ =
+    if Vec3.near_zero scatter_direction
+    then ray_scattered := Ray.{ origin = hit_record.point; direction = hit_record.normal }
+    else ray_scattered := Ray.{ origin = hit_record.point; direction = scatter_direction }
+  in
+  attenuation := t.albedo;
+  true
+;;
+
+let scatter
+  (material : Material.t)
+  (ray_in : Ray.t)
+  (hit_record : HitRecord.t)
+  (attenuation : Color.t ref)
+  (ray_scattered : Ray.t ref)
+  =
+  match material with
+  | Lambertian l -> lambertian_scatter l ray_in hit_record attenuation ray_scattered
+  | Metal m -> metal_scatter m ray_in hit_record attenuation ray_scattered
+  | _ -> failwith "todo"
+;;
 
 module Camera = struct
   type t =
@@ -63,7 +109,7 @@ module Camera = struct
     }
   ;;
 
-  let rec ray_color (ray : Ray.t) depth (world : HittableList.t) : Color.t =
+  let rec ray_color (ray : Ray.t) (depth : Int.t) (world : HittableList.t) : Color.t =
     if depth <= 0
     then Color.{ r = 0.; g = 0.; b = 0. }
     else (
@@ -73,14 +119,29 @@ module Camera = struct
           ; normal = Vec3.{ r = 0.; g = 0.; b = 0. }
           ; time = 0.
           ; front_face = false
+          ; material = Material.Init
           }
       in
       let time_interval = Interval.{ min = 0.001; max = Float.infinity } in
       if HittableList.hit world ray time_interval hit_record
       then (
-        let direction = Vec3.random_on_hemisphere hit_record.normal in
-        let ray = Ray.{ origin = hit_record.point; direction } in
-        Color.scale (ray_color ray (depth - 1) world) 0.5
+        let ray_scattered =
+          ref
+            Ray.
+              { origin = { r = 0.; g = 0.; b = 0. }
+              ; direction = { r = 0.; g = 0.; b = 0. }
+              }
+        in
+        let attenuation = ref Vec3.{ r = 0.; g = 0.; b = 0. } in
+        let hit_material = hit_record.material in
+        (* if Material.scatter hit_material ray hit_record attenuation ray_scattered *)
+        if scatter hit_material ray hit_record attenuation ray_scattered
+        then Color.( * ) !attenuation (ray_color !ray_scattered (depth - 1) world)
+        else Color.{ r = 0.; g = 0.; b = 0. }
+        (* let HitRecord.{ point; normal; time; front_face } = hit_record in *)
+        (* let direction = Vec3.(normal + random_on_hemisphere normal) in *)
+        (* let ray = Ray.{ origin = hit_record.point; direction } in *)
+        (* Color.scale (ray_color ray (depth - 1) world) 0.5) *))
       else (
         let unit_direction = Point3.unit_vector ray.direction in
         let a = 0.5 *. (unit_direction.g +. 1.) in

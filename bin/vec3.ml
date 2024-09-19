@@ -44,4 +44,15 @@ module Vec3 = struct
     let vec = random_unit_vector () in
     if Float.(dot vec normal > 0.) then vec else neg vec
   ;;
+
+  let near_zero { r; g; b } =
+    let epsilon = 1e-8 in
+    Float.(abs r < epsilon && abs g < epsilon && abs b < epsilon)
+  ;;
+
+  let reflect t1 t2 =
+    (* projection t1 onto t2 *)
+    let projection = dot t1 t2 in
+    t1 - scale t2 (2. *. projection)
+  ;;
 end

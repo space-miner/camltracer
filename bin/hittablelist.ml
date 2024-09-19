@@ -23,10 +23,11 @@ module HittableList = struct
   let hit hittable_list ray ({ min; max } : Interval.t) (hit_record : HitRecord.t) =
     let temp_record =
       HitRecord.
-        { point = Point3.{ r = 0.; g = 0.; b = 0. }
-        ; normal = Vec3.{ r = 0.; g = 0.; b = 0. }
+        { point = { r = 0.; g = 0.; b = 0. }
+        ; normal = { r = 0.; g = 0.; b = 0. }
         ; time = 0.
         ; front_face = false
+        ; material = Init
         }
     in
     let hit_anything = ref false in
@@ -41,10 +42,9 @@ module HittableList = struct
           hit_record.point <- temp_record.point;
           hit_record.normal <- temp_record.normal;
           hit_record.time <- temp_record.time;
-          hit_record.front_face <- temp_record.front_face))
-        (* hit_record := temp_record)) *)
+          hit_record.front_face <- temp_record.front_face;
+          hit_record.material <- temp_record.material))
       !hittable_list;
-    (* if !hit_anything then print_s [%sexp (temp_record : HitRecord.t)]; *)
     !hit_anything
   ;;
 end

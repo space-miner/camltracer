@@ -10,6 +10,9 @@ open Hittable
 open Hittablelist
 open Interval
 open Camera
+open Material
+open Lambertian
+open Metal
 
 let () =
   (* image *)
@@ -19,14 +22,35 @@ let () =
   let max_depth = 50 in
   (* camera *)
   let camera = Camera.make aspect_ratio image_width samples_per_pixel max_depth in
+  (* material *)
+  let ground = Material.Lambertian { albedo = { r = 0.8; g = 0.8; b = 0. } } in
+  let center = Material.Lambertian { albedo = { r = 0.1; g = 0.2; b = 0.5 } } in
+  let left = Material.Metal { albedo = { r = 0.8; g = 0.8; b = 0.8 } } in
+  let right = Material.Metal { albedo = { r = 0.8; g = 0.6; b = 0.2 } } in
   (* world *)
   let world = ref [] in
   HittableList.add
     world
-    (Hittable.Sphere Sphere.{ center = Point3.{ r = 0.; g = 0.; b = -1. }; radius = 0.5 });
+    (Hittable.Sphere
+       { center = Point3.{ r = 0.; g = -100.5; b = -1. }
+       ; radius = 100.
+       ; material = ground
+       });
   HittableList.add
     world
-    (Hittable.Sphere { center = Point3.{ r = 0.; g = -100.5; b = -1. }; radius = 100. });
+    (Hittable.Sphere
+       Sphere.
+         { center = Point3.{ r = 0.; g = 0.; b = -1.2 }; radius = 0.5; material = center });
+  HittableList.add
+    world
+    (Hittable.Sphere
+       Sphere.
+         { center = Point3.{ r = -1.; g = 0.; b = -1. }; radius = 0.5; material = left });
+  HittableList.add
+    world
+    (Hittable.Sphere
+       Sphere.
+         { center = Point3.{ r = 1.; g = 0.; b = -1. }; radius = 0.5; material = right });
   (* render *)
   Camera.render camera world
 ;;
