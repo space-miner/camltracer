@@ -103,17 +103,20 @@ module Camera = struct
     ; pixel_delta_u : Vec3.t
     ; pixel_delta_v : Vec3.t
     ; depth : Int.t
+    ; vertical_field_of_vision : Float.t
     }
   [@@deriving sexp]
 
-  let make aspect_ratio image_width samples_per_pixel depth =
+  let make aspect_ratio image_width samples_per_pixel depth vertical_field_of_vision =
     let image_height =
       Int.max 1 (Int.of_float (image_width /. aspect_ratio)) |> Float.of_int
     in
     let pixel_samples_scale = 1. /. Float.of_int samples_per_pixel in
     (* camera *)
     let focal_length = 1. in
-    let viewport_height = 2. in
+    let theta = vertical_field_of_vision *. Float.pi /. 180. in
+    let h = Float.tan (theta /. 2.) in
+    let viewport_height = 2. *. h *. focal_length in
     let viewport_width = viewport_height *. (image_width /. image_height) in
     let camera_center = Vec3.{ r = 0.; g = 0.; b = 0. } in
     (* vectors across viewport edges *)
@@ -143,6 +146,7 @@ module Camera = struct
     ; pixel_delta_u
     ; pixel_delta_v
     ; depth
+    ; vertical_field_of_vision
     }
   ;;
 
