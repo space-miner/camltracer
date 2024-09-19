@@ -5,8 +5,6 @@ open Point3
 open Material
 
 module HitRecord = struct
-  type a
-
   type t =
     { mutable point : Point3.t
     ; mutable normal : Vec3.t

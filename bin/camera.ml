@@ -10,6 +10,7 @@ open Interval
 open Material
 open Metal
 open Lambertian
+open Dielectric
 
 let metal_scatter
   (t : Metal.t)
@@ -34,15 +35,45 @@ let lambertian_scatter
   (ray_in : Ray.t)
   (hit_record : HitRecord.t)
   (attenuation : Color.t ref)
-  (ray_scattered : Ray.t ref)
+  (scattered : Ray.t ref)
   =
   let scatter_direction = Vec3.(hit_record.normal + random_unit_vector ()) in
   let _ =
     if Vec3.near_zero scatter_direction
-    then ray_scattered := Ray.{ origin = hit_record.point; direction = hit_record.normal }
-    else ray_scattered := Ray.{ origin = hit_record.point; direction = scatter_direction }
+    then scattered := Ray.{ origin = hit_record.point; direction = hit_record.normal }
+    else scattered := Ray.{ origin = hit_record.point; direction = scatter_direction }
   in
   attenuation := t.albedo;
+  true
+;;
+
+let dielectric_scatter
+  (t : Dielectric.t)
+  (ray_in : Ray.t)
+  (hit_record : HitRecord.t)
+  (attenuation : Color.t ref)
+  (scattered : Ray.t ref)
+  : Bool.t
+  =
+  let reflectance cosine refraction_index =
+    let r0 = (1. -. refraction_index) /. (1. +. refraction_index) |> Float.square in
+    Float.(r0 + ((1. - r0) * int_pow (1. - cosine) 5))
+  in
+  attenuation := { r = 1.; g = 1.; b = 1. };
+  let refraction_index =
+    if hit_record.front_face then 1. /. t.refraction_index else t.refraction_index
+  in
+  let unit_direction = Vec3.unit_vector ray_in.direction in
+  let cos_theta = Float.min Vec3.(dot (neg unit_direction) hit_record.normal) 1. in
+  let sin_theta = Float.(sqrt (1. -. square cos_theta)) in
+  let cannot_refract = Float.(refraction_index *. sin_theta > 1.) in
+  if cannot_refract || Float.(reflectance cos_theta refraction_index > Random.float 1.)
+  then (
+    let reflected = Vec3.reflect unit_direction hit_record.normal in
+    scattered := Ray.{ origin = hit_record.point; direction = reflected })
+  else (
+    let refracted = Vec3.refract unit_direction hit_record.normal refraction_index in
+    scattered := Ray.{ origin = hit_record.point; direction = refracted });
   true
 ;;
 
@@ -51,11 +82,12 @@ let scatter
   (ray_in : Ray.t)
   (hit_record : HitRecord.t)
   (attenuation : Color.t ref)
-  (ray_scattered : Ray.t ref)
+  (scattered : Ray.t ref)
   =
   match material with
-  | Lambertian l -> lambertian_scatter l ray_in hit_record attenuation ray_scattered
-  | Metal m -> metal_scatter m ray_in hit_record attenuation ray_scattered
+  | Lambertian l -> lambertian_scatter l ray_in hit_record attenuation scattered
+  | Metal m -> metal_scatter m ray_in hit_record attenuation scattered
+  | Dielectric d -> dielectric_scatter d ray_in hit_record attenuation scattered
   | _ -> failwith "todo"
 ;;
 

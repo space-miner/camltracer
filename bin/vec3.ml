@@ -14,6 +14,7 @@ module Vec3 = struct
   let ( * ) t1 t2 = { r = t1.r *. t2.r; g = t1.g *. t2.g; b = t1.b *. t2.b }
   let ( / ) t1 t2 = { r = t1.r /. t2.r; g = t1.g /. t2.g; b = t1.b /. t2.b }
   let scale { r; g; b } factor = { r = r *. factor; g = g *. factor; b = b *. factor }
+  let length_squared { r; g; b } = Float.(square r + square g + square b)
   let length { r; g; b } = Float.(sqrt (square r + square g + square b))
   let sum_rgb { r; g; b } = Float.(r + g + b)
   let dot t1 t2 = sum_rgb (t1 * t2)
@@ -50,9 +51,15 @@ module Vec3 = struct
     Float.(abs r < epsilon && abs g < epsilon && abs b < epsilon)
   ;;
 
-  let reflect t1 t2 =
-    (* projection t1 onto t2 *)
-    let projection = dot t1 t2 in
-    t1 - scale t2 (2. *. projection)
+  let reflect u v =
+    let projection = dot u v in
+    u - scale v (2. *. projection)
+  ;;
+
+  let refract uv n etai_over_etat =
+    let cos_theta = Float.min (dot (neg uv) n) 1. in
+    let r_out_perp = scale (uv + scale n cos_theta) etai_over_etat in
+    let r_out_parallel = scale n Float.(sqrt (abs 1. -. length_squared r_out_perp)) in
+    r_out_perp + r_out_parallel
   ;;
 end
