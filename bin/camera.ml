@@ -104,24 +104,38 @@ module Camera = struct
     ; pixel_delta_v : Vec3.t
     ; depth : Int.t
     ; vertical_field_of_vision : Float.t
+    ; look_from : Point3.t
+    ; look_at : Point3.t
+    ; up_vector : Vec3.t
+    ; basis_u : Vec3.t
+    ; basis_v : Vec3.t
+    ; basis_w : Vec3.t
     }
   [@@deriving sexp]
 
-  let make aspect_ratio image_width samples_per_pixel depth vertical_field_of_vision =
+  let make aspect_ratio image_width samples_per_pixel depth =
     let image_height =
       Int.max 1 (Int.of_float (image_width /. aspect_ratio)) |> Float.of_int
     in
     let pixel_samples_scale = 1. /. Float.of_int samples_per_pixel in
+    let vertical_field_of_vision = 20. in
+    let look_from = Vec3.{ r = Float.neg 2.; g = 2.; b = 1. } in
+    let look_at = Vec3.{ r = 0.; g = 0.; b = Float.neg 1. } in
+    let up_vector = Vec3.{ r = 0.; g = 1.; b = 0. } in
     (* camera *)
-    let focal_length = 1. in
+    let camera_center = look_from in
+    let focal_length = Vec3.(look_from - look_at |> length) in
     let theta = vertical_field_of_vision *. Float.pi /. 180. in
     let h = Float.tan (theta /. 2.) in
     let viewport_height = 2. *. h *. focal_length in
     let viewport_width = viewport_height *. (image_width /. image_height) in
-    let camera_center = Vec3.{ r = 0.; g = 0.; b = 0. } in
+    (* calculate unit basis vectors *)
+    let basis_w = Vec3.(unit_vector (look_from - look_at)) in
+    let basis_u = Vec3.(unit_vector (cross up_vector basis_w)) in
+    let basis_v = Vec3.cross basis_w basis_u in
     (* vectors across viewport edges *)
-    let viewport_u = Vec3.{ r = viewport_width; g = 0.; b = 0. } in
-    let viewport_v = Vec3.{ r = 0.; g = Float.neg viewport_height; b = 0. } in
+    let viewport_u = Vec3.(scale basis_u viewport_width) in
+    let viewport_v = Vec3.(scale (neg basis_v) viewport_height) in
     (* horizontal and vertical delta vectors *)
     let pixel_delta_u = Point3.scale viewport_u (1. /. image_width) in
     let pixel_delta_v = Point3.scale viewport_v (1. /. image_height) in
@@ -129,7 +143,7 @@ module Camera = struct
     let viewport_upper_left =
       Vec3.(
         camera_center
-        - { r = 0.; g = 0.; b = focal_length }
+        - scale basis_w focal_length
         - scale viewport_u 0.5
         - scale viewport_v 0.5)
     in
@@ -147,6 +161,12 @@ module Camera = struct
     ; pixel_delta_v
     ; depth
     ; vertical_field_of_vision
+    ; look_from
+    ; look_at
+    ; up_vector
+    ; basis_u
+    ; basis_v
+    ; basis_w
     }
   ;;
 
