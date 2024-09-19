@@ -16,12 +16,17 @@ let metal_scatter
   (ray_in : Ray.t)
   (hit_record : HitRecord.t)
   (attenuation : Color.t ref)
-  (ray_scattered : Ray.t ref)
+  (scattered : Ray.t ref)
   =
-  let ray_reflected = Vec3.reflect ray_in.direction hit_record.normal in
-  (ray_scattered := Ray.{ origin = hit_record.point; direction = ray_reflected });
+  (* normalize fuzz *)
+  t.fuzz <- Float.min t.fuzz 1.;
+  let reflected = Vec3.reflect ray_in.direction hit_record.normal in
+  let reflected_and_fuzzed =
+    Vec3.(unit_vector reflected + scale (random_unit_vector ()) t.fuzz)
+  in
+  (scattered := Ray.{ origin = hit_record.point; direction = reflected_and_fuzzed });
   attenuation := t.albedo;
-  true
+  Float.(Vec3.dot !scattered.direction hit_record.normal > 0.)
 ;;
 
 let lambertian_scatter

@@ -25,8 +25,8 @@ let () =
   (* material *)
   let ground = Material.Lambertian { albedo = { r = 0.8; g = 0.8; b = 0. } } in
   let center = Material.Lambertian { albedo = { r = 0.1; g = 0.2; b = 0.5 } } in
-  let left = Material.Metal { albedo = { r = 0.8; g = 0.8; b = 0.8 } } in
-  let right = Material.Metal { albedo = { r = 0.8; g = 0.6; b = 0.2 } } in
+  let left = Material.Metal { albedo = { r = 0.8; g = 0.8; b = 0.8 }; fuzz = 0.3 } in
+  let right = Material.Metal { albedo = { r = 0.8; g = 0.6; b = 0.2 }; fuzz = 1. } in
   (* world *)
   let world = ref [] in
   HittableList.add
