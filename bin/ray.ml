@@ -24,7 +24,7 @@ module Ray = struct
     (* let discriminant = Float.(square b - (4. * a * c)) in *)
     let discriminant = Float.(square h - (a * c)) in
     if Float.(discriminant < 0.)
-    then Float.neg 1. (* else Float.(neg b - (sqrt discriminant / (2.0 * a))) *)
+    then -1. (* else Float.(neg b - (sqrt discriminant / (2.0 * a))) *)
     else Float.((h - sqrt discriminant) / a)
   ;;
 

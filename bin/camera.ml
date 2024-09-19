@@ -103,38 +103,41 @@ module Camera = struct
     ; pixel_delta_u : Vec3.t
     ; pixel_delta_v : Vec3.t
     ; depth : Int.t
-    ; vertical_field_of_vision : Float.t
-    ; look_from : Point3.t
-    ; look_at : Point3.t
-    ; up_vector : Vec3.t
-    ; basis_u : Vec3.t
-    ; basis_v : Vec3.t
-    ; basis_w : Vec3.t
+    ; defocus_angle : Float.t
+    ; focus_distance : Float.t
+    ; defocus_disk_u : Vec3.t
+    ; defocus_disk_v : Vec3.t
     }
   [@@deriving sexp]
 
-  let make aspect_ratio image_width samples_per_pixel depth =
+  let make
+    ~aspect_ratio
+    ~image_width
+    ~samples_per_pixel
+    ~depth
+    ~vertical_field_of_vision
+    ~look_from
+    ~look_at
+    ~up_vector
+    ~defocus_angle
+    ~focus_distance
+    =
     let image_height =
       Int.max 1 (Int.of_float (image_width /. aspect_ratio)) |> Float.of_int
     in
     let pixel_samples_scale = 1. /. Float.of_int samples_per_pixel in
-    let vertical_field_of_vision = 20. in
-    let look_from = Vec3.{ r = Float.neg 2.; g = 2.; b = 1. } in
-    let look_at = Vec3.{ r = 0.; g = 0.; b = Float.neg 1. } in
-    let up_vector = Vec3.{ r = 0.; g = 1.; b = 0. } in
     (* camera *)
     let camera_center = look_from in
-    let focal_length = Vec3.(look_from - look_at |> length) in
     let theta = vertical_field_of_vision *. Float.pi /. 180. in
     let h = Float.tan (theta /. 2.) in
-    let viewport_height = 2. *. h *. focal_length in
+    let viewport_height = 2. *. h *. focus_distance in
     let viewport_width = viewport_height *. (image_width /. image_height) in
     (* calculate unit basis vectors *)
     let basis_w = Vec3.(unit_vector (look_from - look_at)) in
     let basis_u = Vec3.(unit_vector (cross up_vector basis_w)) in
     let basis_v = Vec3.cross basis_w basis_u in
     (* vectors across viewport edges *)
-    let viewport_u = Vec3.(scale basis_u viewport_width) in
+    let viewport_u = Vec3.scale basis_u viewport_width in
     let viewport_v = Vec3.(scale (neg basis_v) viewport_height) in
     (* horizontal and vertical delta vectors *)
     let pixel_delta_u = Point3.scale viewport_u (1. /. image_width) in
@@ -143,13 +146,20 @@ module Camera = struct
     let viewport_upper_left =
       Vec3.(
         camera_center
-        - scale basis_w focal_length
+        - scale basis_w focus_distance
         - scale viewport_u 0.5
         - scale viewport_v 0.5)
     in
     let pixel00_loc =
       Point3.(viewport_upper_left + scale (pixel_delta_u + pixel_delta_v) 0.5)
     in
+    (* camera defocus disk basis vectors *)
+    let degrees_to_radians deg = Float.(deg * pi / 180.) in
+    let defocus_radius =
+      Float.(focus_distance * tan (degrees_to_radians (defocus_angle / 2.)))
+    in
+    let defocus_disk_u = Vec3.scale basis_u defocus_radius in
+    let defocus_disk_v = Vec3.scale basis_v defocus_radius in
     { aspect_ratio
     ; image_width
     ; image_height
@@ -160,13 +170,10 @@ module Camera = struct
     ; pixel_delta_u
     ; pixel_delta_v
     ; depth
-    ; vertical_field_of_vision
-    ; look_from
-    ; look_at
-    ; up_vector
-    ; basis_u
-    ; basis_v
-    ; basis_w
+    ; defocus_angle
+    ; focus_distance
+    ; defocus_disk_u
+    ; defocus_disk_v
     }
   ;;
 
@@ -195,20 +202,23 @@ module Camera = struct
         in
         let attenuation = ref Vec3.{ r = 0.; g = 0.; b = 0. } in
         let hit_material = hit_record.material in
-        (* if Material.scatter hit_material ray hit_record attenuation ray_scattered *)
         if scatter hit_material ray hit_record attenuation ray_scattered
         then Color.( * ) !attenuation (ray_color !ray_scattered (depth - 1) world)
-        else Color.{ r = 0.; g = 0.; b = 0. }
-        (* let HitRecord.{ point; normal; time; front_face } = hit_record in *)
-        (* let direction = Vec3.(normal + random_on_hemisphere normal) in *)
-        (* let ray = Ray.{ origin = hit_record.point; direction } in *)
-        (* Color.scale (ray_color ray (depth - 1) world) 0.5) *))
+        else Color.{ r = 0.; g = 0.; b = 0. })
       else (
         let unit_direction = Point3.unit_vector ray.direction in
         let a = 0.5 *. (unit_direction.g +. 1.) in
         Color.(
           scale { r = 1.; g = 1.; b = 1. } (1. -. a)
           + scale { r = 0.5; g = 0.7; b = 1. } a)))
+  ;;
+
+  let defocus_disk_sample camera =
+    let point = Vec3.random_in_unit_disk () in
+    Point3.(
+      camera.center
+      + scale camera.defocus_disk_u point.r
+      + scale camera.defocus_disk_v point.g)
   ;;
 
   let get_ray camera i j =
@@ -220,7 +230,11 @@ module Camera = struct
         + scale camera.pixel_delta_u (Float.of_int i +. r_offset)
         + scale camera.pixel_delta_v (Float.of_int j +. g_offset))
     in
-    let origin = camera.center in
+    let origin =
+      if Float.(camera.defocus_angle <= 0.)
+      then camera.center
+      else defocus_disk_sample camera
+    in
     let direction = Point3.(pixel_sample - origin) in
     Ray.{ origin; direction }
   ;;

@@ -46,6 +46,13 @@ module Vec3 = struct
     if Float.(dot vec normal > 0.) then vec else neg vec
   ;;
 
+  let rec random_in_unit_disk () =
+    let p =
+      { r = Random.float_range (-1.) 1.; g = Random.float_range (-1.) 1.; b = 0. }
+    in
+    if Float.(length_squared p < 1.) then p else random_in_unit_disk ()
+  ;;
+
   let near_zero { r; g; b } =
     let epsilon = 1e-8 in
     Float.(abs r < epsilon && abs g < epsilon && abs b < epsilon)
