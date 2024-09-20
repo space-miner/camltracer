@@ -15,15 +15,15 @@ open Material
 let () =
   (* image *)
   let aspect_ratio = 16. /. 9. in
-  let image_width = 400. in
-  let samples_per_pixel = 10 in
+  let image_width = 1600. in
+  let samples_per_pixel = 300 in
   let depth = 50 in
   let vertical_field_of_vision = 20. in
-  let look_from = Vec3.{ r = -2.; g = 2.; b = 1. } in
+  let look_from = Vec3.{ r = 13.; g = 2.; b = 3. } in
   let look_at = Vec3.{ r = 0.; g = 0.; b = -1. } in
   let up_vector = Vec3.{ r = 0.; g = 1.; b = 0. } in
-  let defocus_angle = 10. in
-  let focus_distance = 3.4 in
+  let defocus_angle = 0.6 in
+  let focus_distance = 10. in
   (* camera *)
   let camera =
     Camera.make
@@ -74,6 +74,41 @@ let () =
     (Hittable.Sphere
        Sphere.
          { center = Point3.{ r = 1.; g = 0.; b = -1. }; radius = 0.5; material = right });
+  (* add random spheres *)
+  for i = -11 to 11 do
+    for j = -11 to 11 do
+      let center =
+        Vec3.
+          { r = Float.(of_int i + (0.9 * Random.float 1.))
+          ; g = 0.2
+          ; b = Float.(of_int j + (0.9 * Random.float 1.))
+          }
+      in
+      let point = Vec3.{ r = 4.; g = 0.2; b = 0. } in
+      if Float.(Point3.(length (center - point)) > 0.9)
+      then (
+        let mat_choice = Random.float 1. in
+        if Float.(mat_choice < 0.8)
+        then (
+          let radius = 0.2 in
+          let material =
+            Material.Lambertian
+              { albedo = Vec3.(Color.random 0. 1. * Color.random 0. 1.) }
+          in
+          HittableList.add world (Hittable.Sphere Sphere.{ center; radius; material }))
+        else if Float.(mat_choice < 0.95)
+        then (
+          let radius = 0.2 in
+          let material =
+            Material.Metal { albedo = Color.(random 0.5 1.); fuzz = Random.float 0.5 }
+          in
+          HittableList.add world (Hittable.Sphere Sphere.{ center; radius; material }))
+        else (
+          let radius = 0.2 in
+          let material = Material.Dielectric { refraction_index = 1.5 } in
+          HittableList.add world (Hittable.Sphere Sphere.{ center; radius; material })))
+    done
+  done;
   (* render *)
   Camera.render camera world
 ;;

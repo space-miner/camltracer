@@ -14,4 +14,11 @@ module Color = struct
       256. *. Interval.clamp interval x |> Int.of_float |> Int.to_string)
     |> String.concat ~sep:" "
   ;;
+
+  let random lo hi =
+    { r = Random.float_range lo hi
+    ; g = Random.float_range lo hi
+    ; b = Random.float_range lo hi
+    }
+  ;;
 end
